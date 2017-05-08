@@ -25,10 +25,13 @@ head(exprs)
 # PCA of the data
 # features in cols, observations in rows
 t <- t(exprs)
+# Add info about the groups
 groups <- data.frame(c(rep("WT", 2), rep("D14", 3), rep("D21", 3)))
 colnames(groups) <- c("group")
 bind <- cbind(t,groups)
+# Calculate PCA
 pca <- prcomp(t)
+# Plot
 autoplot(pca, label= TRUE, data=bind, colour='group')
 # Save to pdf
 pdf(file="./RESULTS/PCA.pdf")
