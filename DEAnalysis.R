@@ -75,7 +75,7 @@ cont.matrix <- makeContrasts("D14/WT"="D14-WT","D21/WT"="D21-WT","D21/D14"="D21-
 # (ANOVA wouldnt be possible with this N size)
 fit2  <- contrasts.fit(fit, cont.matrix)
 fit2  <- eBayes(fit2)
-
+fit2
 # GET D.E. PROTEINS ---------------------------------------------------------
 # Get a knack of the results
 # colnames(fit2)
@@ -229,6 +229,25 @@ plot.new()
 plot(legend("topleft",legend=levels(factor(pathways$CP)), fill=palette, 
        border=FALSE, bty="n", y.intersp = 0.8, cex=0.8, title = "Canonical Pathway"))
  dev.off()
+
+# Heatmap of Ad-hoc Pathways:
+# Get the list of DE genes of those pathways
+base_dir <- "./ANALYSIS/03.CustomPathways/"
+# Then we tell the program about the pathways that we have.
+list <- list.files(base_dir, pattern="*list.txt")
+prots <- data.frame(pathway=c("Calcium", "ECM", "Hemo", "Mitochondrial", "ROS and DNA Binding", "Sarcomeric Cytoskeleton"), path=file.path(base_dir, list), stringsAsFactors = FALSE)
+# Search in each list the top 3 significant fdr in D21/D0 contrast
+completeTableD21_WT <- topTable(fit2,coef=2,number=nrow(exprs), adjust="fdr")
+calcium_prots <- scan(prots$path[prots$pathway=="Calcium"], what="", sep="\n")
+calcium <- completeTableD21_WT[calcium_prots,]
+
+# Sort by FC
+results_ordered <- calcium[order(calcium$logFC, decreasing = TRUE),]
+results_ordered <- calcium[abs(order(calcium$logFC, decreasing = TRUE)),]
+results_ordered
+
+
+
 
 
 
