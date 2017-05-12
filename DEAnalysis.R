@@ -161,7 +161,7 @@ library("gplots")
 library("ggfortify")
 library("RColorBrewer")
 # Change de sample names to something readable
-colnames(exprs) <- c("WT.a", "WT.b","D14.a","D14.b", "D14.c", "D21.a", "D21.b", "D21.c")
+colnames(exprs) <- c("D0.a", "D0.b","D14.a","D14.b", "D14.c", "D21.a", "D21.b", "D21.c")
 # Define color palette
 hmcol<-brewer.pal(11,"RdBu")
 
@@ -169,7 +169,7 @@ hmcol<-brewer.pal(11,"RdBu")
 # features in cols, observations in rows
 t <- t(exprs)
 # Assign info about the groups to the transposed matrix
-groups <- data.frame(c(rep("WT", 2), rep("D14", 3), rep("D21", 3)))
+groups <- data.frame(c(rep("D0", 2), rep("D14", 3), rep("D21", 3)))
 colnames(groups) <- c("group")
 bind <- cbind(t, groups)
 # Calculate PCA
@@ -177,13 +177,13 @@ pca <- prcomp(t)
 # Plot
 autoplot(pca, label= TRUE, data=bind, colour='group')
 # Save to pdf
-pdf(file="./ANALYSIS/03.Figures/PCA.pdf")
+pdf(file="./RESULTS/PCA.pdf")
 autoplot(pca, label= TRUE, data=bind, colour='group')
 dev.off()
 
 # HEATMAPS
 # Heatmap of all the dataset
-pdf(file="./ANALYSIS/03.Figures/heatmap_all_prots.pdf")
+pdf(file="./RESULTS/heatmap_all_prots.pdf")
 heatmap.2(exprs, trace = "none", scale = "row", col=hmcol)
 dev.off()
 # Heatmap of all the 405 differentially expressed genes
@@ -195,7 +195,7 @@ subset <- exprs[myprots,]
 # Create the actual heatmap (scaled by gene (row), so expression is comparable)
 heatmap.2(subset, trace = "none", scale = "row", col=hmcol)
 # save to pdf
-pdf(file="./ANALYSIS/03.Figures/heatmap_all_de_prots.pdf")
+pdf(file="./RESULTS/heatmap_all_de_prots.pdf")
 heatmap.2(subset, trace = "none", scale = "row", col=hmcol)
 dev.off()
 # Heatmap of Pathways:
@@ -203,6 +203,7 @@ dev.off()
 pathways <- read.csv("./ANALYSIS/02.IPA/CP/D21_WT_DE_all_CP.csv", header=TRUE, sep = "\t",
                               as.is=TRUE)
 levels(factor(pathways$CP))
+pathways$UniProt
 # Select proteins from expression dataset
 cp.subset <- exprs[pathways$UniProt,]
 # Plot
@@ -210,11 +211,12 @@ cp.subset <- exprs[pathways$UniProt,]
 palette <- c('#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666')
 groups.color <- c(rep(palette[1],5), rep(palette[2],5), rep(palette[3],3), rep(palette[4],5), 
                   rep(palette[5], 5), rep(palette[6], 5), rep (palette[7], 5), rep(palette[8], 5))
-pdf(file="./ANALYSIS/03.Figures/heatmap_top_de_prots.pdf")
+pdf(file="./RESULTS/heatmap_top_de_prots.pdf")
+#png("Plot3.png", width = 1200, height = 1200, units = "px")
 hm2 <- heatmap.2(cp.subset, trace = "none", scale = "row", col=hmcol, 
           dendrogram = "column", # Only calculate dendrogram for rows (samples)
           Rowv = NULL, # Don't reorder
-          rowsep=c(5, 10, 13, 18, 23, 28, 33), # Where the row separator would be
+          rowsep=c(5, 10, 13, 18, 23, 28, 33), # Where the row separator should be
           sepcolor = "white", # row separator color
           colRow = "black", # Row groups colors
           RowSideColors = groups.color, # Sidebar indicating groups
@@ -222,11 +224,11 @@ hm2 <- heatmap.2(cp.subset, trace = "none", scale = "row", col=hmcol,
          ) 
 dev.off()
 # Print legend
-pdf(file="./ANALYSIS/03.Figures/heatmap_top_de_prots_legend.pdf")
+pdf(file="./RESULTS/heatmap_top_de_prots_legend.pdf")
 plot.new()
 plot(legend("topleft",legend=levels(factor(pathways$CP)), fill=palette, 
        border=FALSE, bty="n", y.intersp = 0.8, cex=0.8, title = "Canonical Pathway"))
-dev.off()
+ dev.off()
 
 
 
