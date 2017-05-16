@@ -198,6 +198,7 @@ heatmap.2(subset, trace = "none", scale = "row", col=hmcol)
 pdf(file="./RESULTS/heatmap_all_de_prots.pdf")
 heatmap.2(subset, trace = "none", scale = "row", col=hmcol)
 dev.off()
+
 # Heatmap of Pathways:
 # Get the top DE genes of those pathways
 pathways <- read.csv("./ANALYSIS/02.IPA/CP/D21_WT_DE_all_CP.csv", header=TRUE, sep = "\t",
@@ -206,6 +207,7 @@ levels(factor(pathways$CP))
 pathways$UniProt
 # Select proteins from expression dataset
 cp.subset <- exprs[pathways$UniProt,]
+head(cp.subset)
 # Plot
 #palette.a <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
 palette <- c('#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666')
@@ -235,18 +237,110 @@ plot(legend("topleft",legend=levels(factor(pathways$CP)), fill=palette,
 base_dir <- "./ANALYSIS/03.CustomPathways/"
 # Then we tell the program about the pathways that we have.
 list <- list.files(base_dir, pattern="*list.txt")
-prots <- data.frame(pathway=c("Calcium", "ECM", "Hemo", "Mitochondrial", "ROS and DNA Binding", "Sarcomeric Cytoskeleton"), path=file.path(base_dir, list), stringsAsFactors = FALSE)
+pathways <- c("Calcium", "ECM", "Hemo", "Mitochondrial", "ROS and DNA Binding", "Sarcomeric Cytoskeleton")
+prots <- data.frame(pathway=pathways, path=file.path(base_dir, list), stringsAsFactors = FALSE)
 # Search in each list the top 3 significant fdr in D21/D0 contrast
+# Select the genes with fdr <0.05 in all the dataset
 completeTableD21_WT <- topTable(fit2,coef=2,number=nrow(exprs), adjust="fdr")
-calcium_prots <- scan(prots$path[prots$pathway=="Calcium"], what="", sep="\n")
-calcium <- completeTableD21_WT[calcium_prots,]
 
-# Sort by FC
-results_ordered <- calcium[order(calcium$logFC, decreasing = TRUE),]
-results_ordered <- calcium[abs(order(calcium$logFC, decreasing = TRUE)),]
-results_ordered
+getTopProts <- function(pathway){
+  # Read the pathway list of proteins
+  pathway.prot.names <- scan(prots$path[prots$pathway==pathway], what="", sep="\n")
+  # Select the proteins from the DE subset. This way we get the intersection between DE and pathway prots.
+  pathway.prots <- completeTableD21_WT[pathway.prot.names,]
+  # Sort the pathway proteins by asbolute logFC:
+  #   Get the order
+  order <- order(abs(pathway.prots$logFC), decreasing = TRUE)
+  #   Sort by that order and select first 3
+  #pathway.prots[order,][1:3,]
+  # Add info about the pathway
+  df <- data.frame(pathway.prots[order,][1:3,], pathway=pathway)
+  return(df)
+}
+
+# Create a new data frame with al the info
+custom.pathways <- data.frame()
+for (path in pathways){
+  # Add to the merged data.frame
+  custom.pathways <- rbind(custom.pathways,getTopProts(path))
+}
+# Get Zq values (normlaized) of those proteins
+custom.subset <- merge(custom.pathways, exprs, by="row.names", all.x = TRUE)
+# Discard unwanted columns
+custom.subset <- custom.subset[,c(-2:-7)]
+# Assign row names
+rownames(custom.subset) <- custom.subset[,1]
+custom.subset <- custom.subset[,-1]
+# Order by pathway and hide the pathway column
+custom.subset <- custom.subset[order(custom.subset$pathway),]
+custom.subset <- custom.subset[,-1]
 
 
+# Finally, plot
+# Transform to matrix so it can be plotted
+custom.subset <- data.matrix(custom.subset, rownames.force = TRUE)
+# Define color palette
+hmcol<-brewer.pal(11,"RdBu")
+palette <- c('#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666')
+groups.color <- c(rep(palette[1],3), rep(palette[2],3), rep(palette[3],3), rep(palette[4],3), 
+                  rep(palette[5], 3), rep(palette[6], 3))
+# Get gene names with Biomart
+library('biomaRt')
+ensembl <- useMart('ensembl', dataset="mmusculus_gene_ensembl")
+# listAttributes(ensembl)
+# listFilters(ensembl)
+annotation <- getBM(attributes=c("external_gene_name","uniprotswissprot"), # Info I want to get
+                    filters="uniprotswissprot", # Type of info I'm providing
+                    values=rownames(custom.subset), # Info I'm providing
+                    mart=ensembl)
+# Change rownames to SwissProtID
+rownames(annotation) <- annotation[,2]
+# Some don't have gene name
+setdiff(rownames(custom.subset), annotation$uniprotswissprot)
+
+# Try anotate with UniProt web server
+library(UniProt.ws)
+# Check m musculus taxId
+availableUniprotSpecies(pattern="musculus")
+# Create conection with that Id
+up <- UniProt.ws(taxId=10090)
+# Type of data (id) I will provide and vector with the ids
+kt <- "UNIPROTKB"
+keys <- rownames(custom.subset)
+# Info I want to retrieve
+# columns(up)
+columns <- c("GENES")
+# Query
+res <- select(up, keys, columns, kt)
+# Change rownames to SwissProtID
+rownames(res) <- res[,1]
+
+# Merge results
+require(plyr)
+all <- join(res, annotation, type="left")
+all
+
+
+
+#pdf(file="./RESULTS/heatmap_custom_de_prots.pdf")
+#png("Plot3.png", width = 1200, height = 1200, units = "px")
+hm2 <- heatmap.2(custom.subset, trace = "none", scale = "row", col=hmcol, 
+                 dendrogram = "column", # Only calculate dendrogram for rows (samples)
+                 Rowv = NULL, # Don't reorder
+                 rowsep=c(3, 6, 9, 12, 15, 18), # Where the row separator should be
+                 sepcolor = "white", # row separator color
+                 colRow = "black", # Row groups colors
+                 RowSideColors = groups.color # Sidebar indicating groups
+                 #labRow = pathways$Symbol # Row label to use
+) 
+
+#dev.off()
+# Print legend
+pdf(file="./RESULTS/heatmap_custom_de_prots_legend.pdf")
+plot.new()
+plot(legend("topleft",legend=levels(pathways), fill=palette, 
+            border=FALSE, bty="n", y.intersp = 0.8, cex=0.8, title = "Canonical Pathway"))
+dev.off()
 
 
 
