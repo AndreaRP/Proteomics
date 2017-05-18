@@ -22,7 +22,7 @@ getTopProts <- function(pathway, n){
   # Sort the pathway proteins by asbolute logFC:
   #   Get the order
   order <- order(abs(pathway.prots$logFC), decreasing = TRUE)
-  #   Sort by that order and select first 3
+  #   Sort by that order and select first n
   #pathway.prots[order,][1:5,]
   # Add info about the pathway
   df <- data.frame(pathway.prots[order,][1:n,], pathway=pathway)
@@ -31,7 +31,7 @@ getTopProts <- function(pathway, n){
 
 # Create a new data frame to store the info of all the pathways
 custom.pathways <- data.frame()
-pathways[c(1:3,5:6)]
+#pathways[c(1:3,5:6)]
 for (path in pathways[c(1:3,5:6)]){
   # Add to the merged data.frame
   custom.pathways <- rbind(custom.pathways,getTopProts(path, 5))
@@ -45,16 +45,20 @@ custom.pathways <- custom.pathways[-26,]
 
 # Get Zq values (normalized) of those proteins
 custom.subset <- merge(custom.pathways, exprs, by="row.names", all.x = TRUE)
-# Discard unwanted columns
-custom.subset <- custom.subset[,c(-2:-7)]
+
+# Discard unwanted columns. (We keep logFC to reorder)
+custom.subset <- custom.subset[,c(-3:-7)]
+# Reorder by logFC so that the ones increasing the most appear first
+custom.subset <- custom.subset[order(custom.subset$pathway, custom.subset$logFC, decreasing = TRUE),]
+# Save the pathway vector to use in the heatmap
+pathways.ordered <- custom.subset$pathway
 # Assign row names
 rownames(custom.subset) <- custom.subset[,1]
-custom.subset <- custom.subset[,-1]
-# Order by pathway and hide the pathway column
-custom.subset <- custom.subset[order(custom.subset$pathway),]
-custom.subset <- custom.subset[,-1]
 
+# Delete unnecessary columns (names, logFC and pathway)
+custom.subset <- custom.subset[,-1:-3]
 custom.subset
+
 # Finally, plot
 # Transform to matrix so it can be plotted
 custom.subset <- data.matrix(custom.subset, rownames.force = TRUE)
@@ -113,10 +117,9 @@ all
 all$GeneName.y[is.na(all$GeneName.y)] <- as.character(all$GeneName.x[is.na(all$GeneName.y)])
 # Get the first name for each gene
 all$GeneName.y <- sapply(strsplit(all$GeneName.y, " "), '[', 1)
-write.table(all, file="./ANALYSIS/03.CustomPathways/annotation.txt", sep = "\t", quote=FALSE, row.names = F)
+# write.table(all, file="./ANALYSIS/03.CustomPathways/annotation.txt", sep = "\t", quote=FALSE, row.names = F)
 
-
-pdf(file="./RESULTS/heatmap_custom_de_prots_5.pdf")
+pdf(file="./RESULTS/heatmap_custom_de_prots_5_ordered.pdf")
 #png("Plot3.png", width = 1200, height = 1200, units = "px")
 hm2 <- heatmap.2(custom.subset, trace = "none", scale = "row", col=hmcol, 
                  dendrogram = "column", # Only calculate dendrogram for rows (samples)
@@ -130,12 +133,13 @@ hm2 <- heatmap.2(custom.subset, trace = "none", scale = "row", col=hmcol,
 ) 
 
 #hm2$colDendrogram
-c(custom.subset$pathways)
+#c(custom.subset$pathways)
 dev.off()
+
 # Print legend
-pdf(file="./RESULTS/heatmap_custom_de_prots_legend_5.pdf")
+pdf(file="./RESULTS/heatmap_custom_de_prots_legend_5_ordered.pdf")
 plot.new()
-plot(legend("topleft",legend=pathways[c(1:3,5:6,4)], fill=palette[1:6], 
+plot(legend("topleft",legend=unique(pathways.ordered), fill=palette[1:6], 
             border=FALSE, bty="n", y.intersp = 0.8, cex=0.8, title = "Canonical Pathway"))
 dev.off()
 
