@@ -4,8 +4,9 @@
 #biocLite("limma")
 #biocLite("gplots")
 library("limma")
-
-setwd("/home/arubio/Documents/PROJECTS/040417-Angel_Proteomics/")
+library(Biobase)
+#getwd()
+setwd("Myocardiocytes_Macrophages_JAN/")
 
 
 #############################################################################################################
@@ -179,7 +180,9 @@ library("RColorBrewer")
 # Change de sample names to something readable
 colnames(exprs) <- c("D0.a", "D0.b","D14.a","D14.b", "D14.c", "D21.a", "D21.b", "D21.c")
 # Define color palette
-hmcol<-brewer.pal(11,"RdBu")
+hmcol <- brewer.pal(11,"RdBu")
+# Invert Red and Blue
+hmcol <- rev(hmcol)
 palette <- c('#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666')
 ############################## PCA of the data ############################## 
 # features in cols, observations in rows
@@ -199,7 +202,7 @@ dev.off()
 
 ############################## HEATMAPS ############################## 
 # Heatmap of all the dataset
-pdf(file="./RESULTS/heatmap_all_prots.pdf")
+pdf(file="./RESULTS/heatmap_all_prots_inverse.pdf")
 heatmap.2(exprs, trace = "none", scale = "row", col=hmcol)
 dev.off()
 # Heatmap of all the 405 differentially expressed genes
@@ -211,7 +214,7 @@ subset <- exprs[myprots,]
 # Create the actual heatmap (scaled by gene (row), so expression is comparable)
 heatmap.2(subset, trace = "none", scale = "row", col=hmcol, Rowv = TRUE)
 # save to pdf
-pdf(file="./RESULTS/heatmap_all_de_prots.pdf")
+pdf(file="./RESULTS/heatmap_all_de_prots_inverse.pdf")
 heatmap.2(subset, trace = "none", scale = "row", col=hmcol)
 dev.off()
 
@@ -219,17 +222,17 @@ dev.off()
 # Get the top DE genes of those pathways
 pathways <- read.csv("./ANALYSIS/02.IPA/CP/D21_WT_DE_all_CP.csv", header=TRUE, sep = "\t",
                               as.is=TRUE)
-levels(factor(pathways$CP))
-pathways$UniProt
+#levels(factor(pathways$CP))
+#pathways$UniProt
 # Select proteins from expression dataset
 cp.subset <- exprs[pathways$UniProt,]
-head(cp.subset)
+#head(cp.subset)
 # Plot
 #palette.a <- c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628','#f781bf')
 palette <- c('#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e','#e6ab02','#a6761d','#666666')
 groups.color <- c(rep(palette[1],5), rep(palette[2],5), rep(palette[3],3), rep(palette[4],5), 
                   rep(palette[5], 5), rep(palette[6], 5), rep (palette[7], 5), rep(palette[8], 5))
-pdf(file="./RESULTS/heatmap_top_de_prots.pdf")
+pdf(file="./RESULTS/heatmap_top_de_prots_inverse.pdf")
 #png("Plot3.png", width = 1200, height = 1200, units = "px")
 hm2 <- heatmap.2(cp.subset, trace = "none", scale = "row", col=hmcol, 
           dendrogram = "column", # Only calculate dendrogram for rows (samples)
@@ -367,7 +370,7 @@ all$GeneName.y[is.na(all$GeneName.y)] <- as.character(all$GeneName.x[is.na(all$G
 all$GeneName.y <- sapply(strsplit(all$GeneName.y, " "), '[', 1)
 # write.table(all, file="./ANALYSIS/03.CustomPathways/annotation.txt", sep = "\t", quote=FALSE, row.names = F)
 
-pdf(file="./RESULTS/heatmap_custom_de_prots_5_ordered.pdf")
+pdf(file="./RESULTS/heatmap_custom_de_prots_5_ordered_inverse.pdf")
 #png("Plot3.png", width = 1200, height = 1200, units = "px")
 hm2 <- heatmap.2(custom.subset, trace = "none", scale = "row", col=hmcol, 
                 dendrogram = "column", # Only calculate dendrogram for rows (samples)
@@ -377,7 +380,7 @@ hm2 <- heatmap.2(custom.subset, trace = "none", scale = "row", col=hmcol,
                 sepcolor = "white", # row separator color
                 colRow = "black", # Row groups colors
                 RowSideColors = groups.color # Sidebar indicating groups
-                , labRow = all$GeneName.y # Row label to use
+                ,labRow = all$GeneName.y # Row label to use
 ) 
 
 #hm2$colDendrogram
@@ -385,7 +388,7 @@ hm2 <- heatmap.2(custom.subset, trace = "none", scale = "row", col=hmcol,
 dev.off()
 
 # Print legend
-pdf(file="./RESULTS/heatmap_custom_de_prots_legend_5_ordered.pdf")
+pdf(file="./RESULTS/heatmap_custom_de_prots_legend_5_ordered_inverse.pdf")
 plot.new()
 plot(legend("topleft",legend=unique(pathways.ordered), fill=palette[1:6], 
            border=FALSE, bty="n", y.intersp = 0.8, cex=0.8, title = "Canonical Pathway"))
