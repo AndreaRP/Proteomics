@@ -202,20 +202,39 @@ dev.off()
 
 ############################## HEATMAPS ############################## 
 # Heatmap of all the dataset
-pdf(file="./RESULTS/heatmap_all_prots_inverse.pdf")
-heatmap.2(exprs, trace = "none", scale = "row", col=hmcol)
+pdf(file="./RESULTS/heatmap_all_prots.pdf")
+heatmap.2(exprs
+          , trace = "none"
+          , scale = "row"
+          , distfun=function(x) as.dist((1-cor(t(x)))/2) # Pearson correlation
+          , col=hmcol)
 dev.off()
+# , distfun=function(c) as.dist(1-cor(exprs))
 # Heatmap of all the 405 differentially expressed genes
 de.results <- which(results[,1]!=0 | results[,2]!=0 | results[,3]!=0)
 de.prots <- results[de.results,]
 myprots <- rownames(de.prots)
 # Select subset from original file
 subset <- exprs[myprots,]
-# Create the actual heatmap (scaled by gene (row), so expression is comparable)
-heatmap.2(subset, trace = "none", scale = "row", col=hmcol, Rowv = TRUE)
+# Create the actual heatmap (scaled by feature (row), so expression is comparable)
+heatmap.2(subset
+          , trace = "none"
+          , scale = "row"
+          , col=hmcol
+          , distfun=function(x) as.dist((1-cor(t(x)))/2) # Pearson correlation
+          , Rowv = TRUE
+          )
+head(as.dist(1-cor(t(subset))))
+head(as.dist((1-cor(t(subset)))/2))
 # save to pdf
-pdf(file="./RESULTS/heatmap_all_de_prots_inverse.pdf")
-heatmap.2(subset, trace = "none", scale = "row", col=hmcol)
+pdf(file="./RESULTS/heatmap_all_DE_prots.pdf")
+heatmap.2(subset
+          , trace = "none"
+          , scale = "row"
+          , col=hmcol
+          , distfun=function(x) as.dist((1-cor(t(x)))/2) # Pearson correlation
+          , Rowv = TRUE
+)
 dev.off()
 
 # Heatmap of IPA Pathways:
@@ -240,8 +259,9 @@ hm2 <- heatmap.2(cp.subset, trace = "none", scale = "row", col=hmcol,
           rowsep=c(5, 10, 13, 18, 23, 28, 33), # Where the row separator should be
           sepcolor = "white", # row separator color
           colRow = "black", # Row groups colors
-          RowSideColors = groups.color, # Sidebar indicating groups
-          labRow = pathways$Symbol # Row label to use
+          RowSideColors = groups.color # Sidebar indicating groups
+          , distfun=function(x) as.dist((1-cor(t(x)))/2) # Pearson correlation
+          , labRow = pathways$Symbol # Row label to use
          ) 
 dev.off()
 # Print legend
@@ -380,7 +400,8 @@ hm2 <- heatmap.2(custom.subset, trace = "none", scale = "row", col=hmcol,
                 sepcolor = "white", # row separator color
                 colRow = "black", # Row groups colors
                 RowSideColors = groups.color # Sidebar indicating groups
-                ,labRow = all$GeneName.y # Row label to use
+                , distfun=function(x) as.dist((1-cor(t(x)))/2) # Pearson correlation
+                , labRow = all$GeneName.y # Row label to use
 ) 
 
 #hm2$colDendrogram
